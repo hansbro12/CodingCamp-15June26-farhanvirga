@@ -17,6 +17,98 @@ const store = {
 };
 
 /* ══════════════════════════════════════════
+   0. SETTINGS (theme, name, pomodoro time)
+══════════════════════════════════════════ */
+const settings = (function initSettings() {
+  const settingsBtn    = document.getElementById('settings-btn');
+  const modal          = document.getElementById('settings-modal');
+  const saveBtn        = document.getElementById('settings-save');
+  const cancelBtn      = document.getElementById('settings-cancel');
+  const themeToggle    = document.getElementById('theme-toggle');
+  const nameInput      = document.getElementById('name-input');
+  const pomodoroInput  = document.getElementById('pomodoro-input');
+
+  // Persisted settings state
+  let current = store.get('settings', {
+    theme:        'dark',
+    name:         '',
+    pomodoroMins: 25
+  });
+
+  // Pending state while modal is open
+  let pending = {};
+
+  /* ── apply theme ── */
+  function applyTheme(theme) {
+    document.body.classList.toggle('light', theme === 'light');
+    themeToggle.setAttribute('aria-checked', theme === 'light' ? 'true' : 'false');
+  }
+
+  /* ── public getters ── */
+  function getName()         { return current.name; }
+  function getPomodoroMins() { return current.pomodoroMins; }
+
+  /* ── open modal ── */
+  function openModal() {
+    pending = { ...current };
+    nameInput.value     = current.name;
+    pomodoroInput.value = current.pomodoroMins;
+    applyTheme(current.theme);       // reflect current in toggle
+    modal.classList.remove('hidden');
+    nameInput.focus();
+  }
+
+  /* ── close modal ── */
+  function closeModal() {
+    // Revert any live theme preview
+    applyTheme(current.theme);
+    modal.classList.add('hidden');
+  }
+
+  /* ── live theme preview via toggle ── */
+  themeToggle.addEventListener('click', () => {
+    const next = themeToggle.getAttribute('aria-checked') === 'true' ? 'dark' : 'light';
+    themeToggle.setAttribute('aria-checked', next === 'light' ? 'true' : 'false');
+    document.body.classList.toggle('light', next === 'light');
+    pending.theme = next;
+  });
+
+  /* ── save ── */
+  saveBtn.addEventListener('click', () => {
+    const newName = nameInput.value.trim();
+    const newMins = Math.min(99, Math.max(1, parseInt(pomodoroInput.value, 10) || 25));
+
+    current = {
+      theme:        pending.theme        ?? current.theme,
+      name:         newName,
+      pomodoroMins: newMins
+    };
+    store.set('settings', current);
+    applyTheme(current.theme);
+
+    // Notify greeting to re-render
+    document.dispatchEvent(new CustomEvent('settings:saved'));
+    // Notify timer to update pomodoro duration
+    document.dispatchEvent(new CustomEvent('settings:pomodoro', { detail: current.pomodoroMins }));
+
+    modal.classList.add('hidden');
+  });
+
+  cancelBtn.addEventListener('click', closeModal);
+  modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeModal();
+  });
+
+  settingsBtn.addEventListener('click', openModal);
+
+  // Apply saved theme immediately on load
+  applyTheme(current.theme);
+
+  return { getName, getPomodoroMins };
+})();
+
+/* ══════════════════════════════════════════
    1. GREETING & CLOCK
 ══════════════════════════════════════════ */
 (function initGreeting() {
@@ -24,26 +116,37 @@ const store = {
   const datetimeEl = document.getElementById('current-datetime');
 
   const greetings = {
-    dawn:      'Good Early Morning! 🌌',
-    morning:   'Good Morning! ☀️',
-    afternoon: 'Good Afternoon! 🌤️',
-    evening:   'Good Evening! 🌆',
-    night:     'Good Night! 🌙'
+    dawn:      'Good Early Morning',
+    morning:   'Good Morning',
+    afternoon: 'Good Afternoon',
+    evening:   'Good Evening',
+    night:     'Good Night'
   };
 
-  function getGreeting(hour) {
-    if (hour >= 4  && hour < 7)  return greetings.dawn;
-    if (hour >= 7  && hour < 12) return greetings.morning;
-    if (hour >= 12 && hour < 17) return greetings.afternoon;
-    if (hour >= 17 && hour < 21) return greetings.evening;
-    return greetings.night;
+  const emojis = {
+    dawn: '🌌', morning: '☀️', afternoon: '🌤️', evening: '🌆', night: '🌙'
+  };
+
+  function getPeriod(hour) {
+    if (hour >= 4  && hour < 7)  return 'dawn';
+    if (hour >= 7  && hour < 12) return 'morning';
+    if (hour >= 12 && hour < 17) return 'afternoon';
+    if (hour >= 17 && hour < 21) return 'evening';
+    return 'night';
+  }
+
+  function buildGreeting(hour) {
+    const period = getPeriod(hour);
+    const name   = settings.getName();
+    const suffix = name ? `, ${name}` : '!';
+    return `${greetings[period]}${suffix} ${emojis[period]}`;
   }
 
   function updateClock() {
     const now  = new Date();
     const hour = now.getHours();
 
-    greetingEl.textContent = getGreeting(hour);
+    greetingEl.textContent = buildGreeting(hour);
 
     const dateStr = now.toLocaleDateString('en-US', {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
@@ -53,6 +156,9 @@ const store = {
     });
     datetimeEl.textContent = `${dateStr}  •  ${timeStr}`;
   }
+
+  // Re-render greeting when settings are saved
+  document.addEventListener('settings:saved', () => updateClock());
 
   updateClock();
   setInterval(updateClock, 1000);
@@ -69,11 +175,20 @@ const store = {
   const resetBtn  = document.getElementById('timer-reset');
   const modeBtns  = document.querySelectorAll('.mode-btn');
 
-  let totalSeconds  = 25 * 60;
+  // Read saved pomodoro duration from settings
+  let pomodoroMins  = settings.getPomodoroMins();
+  let totalSeconds  = pomodoroMins * 60;
   let remaining     = totalSeconds;
   let intervalId    = null;
   let isRunning     = false;
   let sessionCount  = 0;
+  let activeMode    = 'pomodoro'; // 'pomodoro' | 'short' | 'long'
+
+  // Keep the Pomodoro button label in sync
+  function syncPomodoroBtn() {
+    const pomBtn = document.querySelector('.mode-btn[data-mode="pomodoro"]');
+    if (pomBtn) pomBtn.textContent = `Pomodoro (${pomodoroMins}m)`;
+  }
 
   function format(secs) {
     const m = String(Math.floor(secs / 60)).padStart(2, '0');
@@ -88,9 +203,10 @@ const store = {
       : 'Life Dashboard';
   }
 
-  function setMode(minutes) {
+  function setMode(minutes, mode) {
     clearInterval(intervalId);
     isRunning    = false;
+    activeMode   = mode;
     totalSeconds = minutes * 60;
     remaining    = totalSeconds;
     statusEl.textContent = 'Ready to focus!';
@@ -104,7 +220,6 @@ const store = {
       sessionCount++;
       statusEl.textContent = `🎉 Session complete! Total: ${sessionCount}`;
       render();
-      // Browser notification if permitted
       if (Notification.permission === 'granted') {
         new Notification('Focus session complete!', {
           body: 'Time for a break 🎉',
@@ -124,7 +239,6 @@ const store = {
     statusEl.textContent = 'Stay focused! 💪';
     intervalId = setInterval(tick, 1000);
     render();
-    // Request notification permission on first start
     if (Notification.permission === 'default') Notification.requestPermission();
   });
 
@@ -147,10 +261,23 @@ const store = {
     btn.addEventListener('click', () => {
       modeBtns.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      setMode(Number(btn.dataset.minutes));
+      const mode = btn.dataset.mode;
+      const mins = mode === 'pomodoro' ? pomodoroMins : Number(btn.dataset.minutes);
+      setMode(mins, mode);
     });
   });
 
+  // When settings are saved with a new pomodoro duration
+  document.addEventListener('settings:pomodoro', e => {
+    pomodoroMins = e.detail;
+    syncPomodoroBtn();
+    // If currently on pomodoro mode, reset to new duration
+    if (activeMode === 'pomodoro') {
+      setMode(pomodoroMins, 'pomodoro');
+    }
+  });
+
+  syncPomodoroBtn();
   render();
 })();
 

@@ -7,6 +7,7 @@
   padding: 0;
 }
 
+/* Dark mode tokens (default) */
 :root {
   --bg:          #0f1117;
   --surface:     #1a1d27;
@@ -24,6 +25,32 @@
   --radius-sm:   8px;
   --shadow:      0 4px 24px rgba(0,0,0,.45);
   --font:        'Segoe UI', system-ui, -apple-system, sans-serif;
+  --greeting-grad-start: #1c1f35;
+  --greeting-grad-end:   #12152a;
+}
+
+/* Light mode tokens */
+body.light {
+  --bg:          #f0f2fa;
+  --surface:     #ffffff;
+  --surface-2:   #eef0f9;
+  --border:      #d0d4e8;
+  --accent:      #7c6af7;
+  --accent-hover:#6455d6;
+  --accent-light:#7c6af722;
+  --success:     #3a9e6e;
+  --danger:      #e04545;
+  --text-1:      #1a1d2e;
+  --text-2:      #4a4f72;
+  --text-3:      #8b90b8;
+  --shadow:      0 4px 24px rgba(0,0,0,.10);
+  --greeting-grad-start: #e8eaf6;
+  --greeting-grad-end:   #dde0f5;
+}
+
+/* Smooth theme transition */
+body {
+  transition: background .25s, color .25s;
 }
 
 html { font-size: 16px; }
@@ -40,10 +67,11 @@ body {
    GREETING HEADER
 ───────────────────────────────────────── */
 .greeting-section {
-  background: linear-gradient(135deg, #1c1f35 0%, #12152a 100%);
+  background: linear-gradient(135deg, var(--greeting-grad-start) 0%, var(--greeting-grad-end) 100%);
   border-bottom: 1px solid var(--border);
   padding: 2.2rem 2rem 2rem;
   text-align: center;
+  position: relative;
 }
 
 .greeting-inner { max-width: 800px; margin: 0 auto; }
@@ -479,6 +507,124 @@ body {
   gap: .6rem;
   margin-top: 1rem;
   justify-content: flex-end;
+}
+
+/* ─────────────────────────────────────────
+   SETTINGS BUTTON
+───────────────────────────────────────── */
+.settings-btn {
+  position: absolute;
+  top: 1.1rem;
+  right: 1.2rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-2);
+  font-size: 1.15rem;
+  width: 2.2rem;
+  height: 2.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background .18s, border-color .18s, transform .15s;
+}
+.settings-btn:hover {
+  background: var(--border);
+  border-color: var(--accent);
+  transform: rotate(25deg);
+}
+
+/* ─────────────────────────────────────────
+   SETTINGS MODAL
+───────────────────────────────────────── */
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .75rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.settings-row:last-of-type { border-bottom: none; }
+
+.settings-label {
+  font-size: .88rem;
+  font-weight: 600;
+  color: var(--text-2);
+  flex-shrink: 0;
+}
+
+.settings-input {
+  flex: 1;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: .5rem .8rem;
+  color: var(--text-1);
+  font-size: .9rem;
+  outline: none;
+  transition: border-color .18s;
+}
+.settings-input:focus { border-color: var(--accent); }
+.settings-input::placeholder { color: var(--text-3); }
+
+.settings-input--short {
+  width: 5rem;
+  flex: none;
+  text-align: center;
+}
+
+.pomodoro-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+}
+.settings-unit {
+  font-size: .85rem;
+  color: var(--text-3);
+}
+
+/* Theme toggle switch */
+.theme-toggle-wrap {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+}
+.theme-label-left,
+.theme-label-right {
+  font-size: .82rem;
+  color: var(--text-3);
+}
+
+.toggle-switch {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background .25s, border-color .25s;
+  flex-shrink: 0;
+}
+.toggle-switch[aria-checked="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform .25s;
+  box-shadow: 0 1px 4px rgba(0,0,0,.3);
+}
+.toggle-switch[aria-checked="true"] .toggle-thumb {
+  transform: translateX(20px);
 }
 
 /* ─────────────────────────────────────────

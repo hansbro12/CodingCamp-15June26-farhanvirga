@@ -10,10 +10,11 @@
 
     <!-- ── GREETING ── -->
     <header class="greeting-section">
-      <div class="greeting-inner">
+      <section class="greeting-inner">
         <p id="greeting-text" class="greeting-text">Good Morning!</p>
         <p id="current-datetime" class="datetime-text"></p>
-      </div>
+      </section>
+      <button id="settings-btn" class="settings-btn" title="Settings" aria-label="Open settings">⚙️</button>
     </header>
 
     <main class="dashboard">
@@ -23,9 +24,9 @@
         <h2 class="card-title">🎯 Focus Timer</h2>
         <div class="timer-display" id="timer-display">25:00</div>
         <div class="timer-mode-row">
-          <button class="mode-btn active" data-minutes="25">Pomodoro</button>
-          <button class="mode-btn" data-minutes="5">Short Break</button>
-          <button class="mode-btn" data-minutes="15">Long Break</button>
+          <button class="mode-btn active" data-mode="pomodoro">Pomodoro</button>
+          <button class="mode-btn" data-mode="short" data-minutes="5">Short Break</button>
+          <button class="mode-btn" data-mode="long"  data-minutes="15">Long Break</button>
         </div>
         <div class="timer-controls">
           <button id="timer-start" class="btn btn-primary">▶ Start</button>
@@ -89,6 +90,58 @@
       </section>
 
     </main>
+
+    <!-- ── SETTINGS MODAL ── -->
+    <div id="settings-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+      <div class="modal">
+        <h3 class="modal-title" id="settings-title">⚙️ Settings</h3>
+
+        <!-- Theme -->
+        <div class="settings-row">
+          <label class="settings-label">Theme</label>
+          <div class="theme-toggle-wrap">
+            <span class="theme-label-left">🌙 Dark</span>
+            <button id="theme-toggle" class="toggle-switch" role="switch" aria-checked="false" aria-label="Toggle light mode">
+              <span class="toggle-thumb"></span>
+            </button>
+            <span class="theme-label-right">☀️ Light</span>
+          </div>
+        </div>
+
+        <!-- Custom name -->
+        <div class="settings-row">
+          <label class="settings-label" for="name-input">Your Name</label>
+          <input
+            type="text"
+            id="name-input"
+            class="settings-input"
+            placeholder="e.x. Joni"
+            maxlength="30"
+          />
+        </div>
+
+        <!-- Pomodoro duration -->
+        <div class="settings-row">
+          <label class="settings-label" for="pomodoro-input">Pomodoro Duration</label>
+          <div class="pomodoro-input-wrap">
+            <input
+              type="number"
+              id="pomodoro-input"
+              class="settings-input settings-input--short"
+              min="1"
+              max="99"
+              value="25"
+            />
+            <span class="settings-unit">min</span>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button id="settings-save" class="btn btn-primary">Save</button>
+          <button id="settings-cancel" class="btn btn-secondary">Cancel</button>
+        </div>
+      </div>
+    </div>
 
     <!-- ── EDIT TASK MODAL ── -->
     <div id="edit-modal" class="modal-overlay hidden">
